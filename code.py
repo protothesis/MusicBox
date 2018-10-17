@@ -1,6 +1,5 @@
-# Metro IO demo
-# Welcome to CircuitPython 2.2.0 :)
-
+# MusicBox Interface Protype
+# Metro M0 - Circuit Python 3.x
 
 # //// IMPORTS
 import board
@@ -8,7 +7,6 @@ import time
 import neopixel
 from digitalio import DigitalInOut, Direction, Pull
 import touchio
-# import simpleio
 import rotaryio
 
 
@@ -22,48 +20,37 @@ dot = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2)
 led = DigitalInOut(board.D13)
 led.direction = Direction.OUTPUT
 
-# Digital input with pullup
-buttons = []
-for p in [board.D2, board.D3]:
-    button = DigitalInOut(p)
-    button.direction = Direction.INPUT
-    button.pull = Pull.UP
-    buttons.append(button)
+leftbutton = DigitalInOut(board.D2)
+leftbutton.direction = Direction.INPUT
+leftbutton.pull = Pull.UP
+
+middlebutton = DigitalInOut(board.D3)
+middlebutton.direction = Direction.INPUT
+middlebutton.pull = Pull.UP
 
 # External rotary encoder
-encoder = rotaryio.IncrementalEncoder(board.D5, board.D6)
-# TODO
-	# add support for second rotary encoder
-	# perhaps some sort of schema like buttons[] above
+leftencoder = rotaryio.IncrementalEncoder(board.D5, board.D6)
+middleencoder = rotaryio.IncrementalEncoder(board.D7, board.D8)
 
 
 
 
 # //// PURE FUNCTIONS
-def buttonIsDown(num):  # returns intuitive button press value
+def buttonIsDown(button):  # returns intuitive button press value
 	#
-    return not buttons[num].value
+    return not button.value
 
+def anythingHasChanged():
+	if prev_left_button_down != buttonIsDown(leftbutton):
+		return True
+	elif prev_left_encoder_position != leftencoder.position:
+		return True
+	elif prev_middle_button_down != buttonIsDown(middlebutton):
+		return True
+	elif prev_middle_encoder_position != middleencoder.position:
+		return True
+	return False
 
-
-
-# //// COMMANDS
-def doPrintToSerial():
-	print(
-	"LeftEncoder: %d" % encoder.position,
-	"/",
-	"LeftButton: %d" % buttonIsDown(0),
-	"/",
-	"MiddleEncoder: %d" % 0,  # encoder.position,
-	"/",
-	"MiddleButton: %d" % buttonIsDown(1)
-	)
-	pass
-
-
-
-
-# //// HELPERS / UPDATES
 def wheel(pos):  # Helper to give us a nice color swirl
     # Input a value 0 to 255 to get a color value.
     # The colours are a transition r - g - b - back to r.
@@ -80,31 +67,43 @@ def wheel(pos):  # Helper to give us a nice color swirl
         pos -= 170
         return [0, int(pos*3), int(255 - pos*3)]
 
-def encoderHasChanged():  # updates the encoder position value (and value for serial message)
-	global last_encoded_position
-	global serial_message_encoder
 
-	global encoder_has_changed
-	current_encoded_position = encoder.position
+# //// COMMANDS
+def doPrintToSerial():
+	print(
+	"LeftEncoder: %d" % leftencoder.position,
+	"/",
+	"LeftButton: %d" % buttonIsDown(leftbutton),
+	"/",
+	"MiddleEncoder: %d" % middleencoder.position,
+	"/",
+	"MiddleButton: %d" % buttonIsDown(middlebutton)
+	)
+	pass
 
-	if last_encoded_position is None or current_encoded_position != last_encoded_position:
-		encoder_has_changed = True
-		serial_message_encoder = current_encoded_position
-		# doPrintToSerial()
-	else:
-		encoder_has_changed = False
 
-	last_encoded_position = current_encoded_position 
+# //// HELPERS / UPDATES
+def updateEveryControl():
+	global prev_left_button_down
+	global prev_left_encoder_position
+	global prev_middle_button_down
+	global prev_middle_encoder_position
 
-    
+	prev_left_button_down = buttonIsDown(leftbutton)
+	prev_left_encoder_position = leftencoder.position
+	prev_middle_button_down = buttonIsDown(middlebutton)
+	prev_middle_encoder_position = middleencoder.position
+
+
 
 
 # //// VARIABLES ////
 i = 0
 
-last_encoded_position = None
-encoder_has_changed = None
-serial_message_encoder = None
+prev_left_button_down = buttonIsDown(leftbutton)
+prev_left_encoder_position = leftencoder.position
+prev_middle_button_down = buttonIsDown(middlebutton)
+prev_middle_encoder_position = middleencoder.position
 
 
 
@@ -115,31 +114,16 @@ while True:
 
 
 	# COMMANDS
-	if encoder_has_changed:
-		# doPrintToSerial()
-		pass
+	if anythingHasChanged():
+		updateEveryControl()
+		doPrintToSerial()
 
 
 	# CONTINUOUS
-	encoderHasChanged()
-
-  	# spin internal LED around! autoshow is on
+	# spin internal LED around! autoshow is on
 	dot[0] = wheel(i & 255)
 	# set onboard LED to match either Button
-	led.value = buttonIsDown(0) or buttonIsDown(1)
-
-
-	if buttonIsDown(0):
-		# print("Left Button 'D2' Pressed!!!", end ="\t")
-		pass
-
-	if buttonIsDown(1):
-		# print("Middle Button 'D3' Pressed!", end ="\t")
-		pass
-
-
-	# update the serial message (for easy feedback)
-	doPrintToSerial()
+	led.value = buttonIsDown(leftbutton) or buttonIsDown(middlebutton)
 
 	i = (i+1) % 256  # run from 0 to 255
 	time.sleep(0.01) # make bigger to slow down
