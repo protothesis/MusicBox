@@ -1,0 +1,1 @@
+Adafruit CircuitPython 3.0.3 on 2018-10-10; Adafruit Metro M0 Express with samd21g18
