@@ -20,6 +20,7 @@ dot = neopixel.NeoPixel(board.NEOPIXEL, 1, brightness=0.2)
 led = DigitalInOut(board.D13)
 led.direction = Direction.OUTPUT
 
+# External Knob Buttons
 leftbutton = DigitalInOut(board.D2)
 leftbutton.direction = Direction.INPUT
 leftbutton.pull = Pull.UP
@@ -28,9 +29,14 @@ middlebutton = DigitalInOut(board.D3)
 middlebutton.direction = Direction.INPUT
 middlebutton.pull = Pull.UP
 
-# External rotary encoder
+rightbutton = DigitalInOut(board.D4)
+rightbutton.direction = Direction.INPUT
+rightbutton.pull = Pull.UP
+
+# External Knob rotary encoders
 leftencoder = rotaryio.IncrementalEncoder(board.D5, board.D6)
 middleencoder = rotaryio.IncrementalEncoder(board.D7, board.D8)
+rightencoder = rotaryio.IncrementalEncoder(board.D9, board.D10)
 
 
 
@@ -49,6 +55,11 @@ def anythingHasChanged():
 		return True
 	elif prev_middle_encoder_position != middleencoder.position:
 		return True
+	elif prev_right_button_down != buttonIsDown(rightbutton):
+		return True
+	elif prev_right_encoder_position != rightencoder.position:
+		return True	
+
 	return False
 
 def wheel(pos):  # Helper to give us a nice color swirl
@@ -77,7 +88,11 @@ def doPrintToSerial():
 	"/",
 	"MiddleEncoder: %d" % middleencoder.position,
 	"/",
-	"MiddleButton: %d" % buttonIsDown(middlebutton)
+	"MiddleButton: %d" % buttonIsDown(middlebutton),
+	"/",
+	"RightEncoder: %d" % rightencoder.position,
+	"/",
+	"RightButton: %d" % buttonIsDown(rightbutton)
 	)
 	pass
 
@@ -88,11 +103,15 @@ def updateEveryControl():
 	global prev_left_encoder_position
 	global prev_middle_button_down
 	global prev_middle_encoder_position
+	global prev_right_button_down
+	global prev_right_encoder_position
 
 	prev_left_button_down = buttonIsDown(leftbutton)
 	prev_left_encoder_position = leftencoder.position
 	prev_middle_button_down = buttonIsDown(middlebutton)
 	prev_middle_encoder_position = middleencoder.position
+	prev_right_button_down = buttonIsDown(rightbutton)
+	prev_right_encoder_position = rightencoder.position
 
 
 
@@ -104,9 +123,11 @@ prev_left_button_down = buttonIsDown(leftbutton)
 prev_left_encoder_position = leftencoder.position
 prev_middle_button_down = buttonIsDown(middlebutton)
 prev_middle_encoder_position = middleencoder.position
+prev_right_button_down = buttonIsDown(rightbutton)
+prev_right_encoder_position = rightencoder.position
 
-
-
+# a little message for the TouchDesigner Serial DAT
+print("MusicBox Interface is ready to transmit.")
 
 # //// MAIN LOOP ////
 while True:
@@ -123,7 +144,7 @@ while True:
 	# spin internal LED around! autoshow is on
 	dot[0] = wheel(i & 255)
 	# set onboard LED to match either Button
-	led.value = buttonIsDown(leftbutton) or buttonIsDown(middlebutton)
+	led.value = buttonIsDown(leftbutton) or buttonIsDown(middlebutton) or buttonIsDown(rightbutton)
 
 	i = (i+1) % 256  # run from 0 to 255
 	time.sleep(0.01) # make bigger to slow down
